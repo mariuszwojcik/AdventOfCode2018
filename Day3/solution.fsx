@@ -25,31 +25,51 @@ let parse (s: string) =
     }
 
 
-let addClaim (c : Claim) (area : int[,]) : int[,] =
+let addClaim (c : Claim) (area : Claim list[,]) : Claim list[,] =
     for y in (c.y) .. (c.y + c.h - 1) do
         for x in (c.x) .. (c.x + c.w - 1) do
-            area.[y,x] <- area.[y,x] + 1
+            area.[y,x] <- c :: area.[y,x]
 
     area    
 
-let addClaims (area : int[,]) (claims : Claim list) =
+let addClaims (area : Claim list[,]) (claims : Claim list) =
     claims
     |> List.map(fun c -> addClaim c area)
     |> List.last
 
-let calculateMultiClaimSquares (area : int[,]) =
+let calculateMultiClaimSquares (area : Claim list[,]) =
     area
-    |> Seq.cast<int>
-    |> Seq.filter (fun i-> i > 1)
+    |> Seq.cast<Claim list>
+    |> Seq.filter (fun i-> i.Length > 1)
     |> Seq.length
 
-let area = Array2D.zeroCreate<int> 8 8
-let claims = [ "#1 @ 1,3: 4x4"; "#2 @ 3,1: 4x4"; "#3 @ 5,5: 2x2" ] |> List.map parse
+let getClaimIds area = 
+    area
+    |> Seq.cast<Claim list>
+    |> Seq.collect(fun c -> c |> List.map(fun c' -> c'.claimId))
+    |> Seq.distinct
+    |> Seq.toList
 
-// let area = Array2D.zeroCreate<int> 1000 1000
-// let claims = loadData() |> Array.toList |> List.map parse
+let getClaimIdsWithOvelap area =
+    area
+    |> Seq.cast<Claim list>
+    |> Seq.filter (fun i-> i.Length > 1)
+    |> Seq.collect(fun c -> c |> List.map(fun c' -> c'.claimId))
+    |> Seq.distinct
+    |> Seq.toList
+
+
+
+let area = Array2D.create<Claim list> 1000 1000 []
+let claims = loadData() |> Array.toList |> List.map parse
 
 let areaWithClaims = addClaims area claims
 areaWithClaims |> calculateMultiClaimSquares
 
+let claimIds = areaWithClaims |> getClaimIds
 // 96569
+
+let allClaimIds = getClaimIds areaWithClaims 
+let claimsWithOverlaps = getClaimIdsWithOvelap areaWithClaims 
+
+allClaimIds |> List.except claimsWithOverlaps
